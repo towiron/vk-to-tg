@@ -23,7 +23,7 @@ data = []
 def start_thread(user_id, vk_group_id, tg_channel_id):
     new_dict = {'user_id': user_id, 'vk_group_id': vk_group_id, 'tg_channel_id': tg_channel_id}
     data.append(new_dict)
-    print(f'начать {data}')
+    print(f'Запуск: {data}')
     t = threading.Thread(target=check_group_for_new_post, args=(new_dict,))
     t.start()
 
@@ -52,18 +52,22 @@ def stop_thread(user_id):
 def check_group_for_new_post(d):
     vk_session = VkApi(token=VK_ACCESS_TOKEN)
     vk = vk_session.get_api()
-    stop_event = threading.Event()
-    d['stop_event'] = stop_event
-    while not stop_event.is_set():
-        try:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        stop_event = threading.Event()
+        d['stop_event'] = stop_event
+        while not stop_event.is_set():
             long_poll = vk.groups.getLongPollServer(group_id=d['vk_group_id'])
             server, key, ts = long_poll['server'], long_poll['key'], long_poll['ts']
             response = requests.get(f'{server}?act=a_check&key={key}&ts={ts}&wait=25')
             response_json = json.loads(response.text)
             updates = response_json.get('updates', [])
-            asyncio.run(check_updates(updates=updates, chat_id=d['tg_channel_id']))
-        except Exception as e:
-            print(e)
+            loop.run_until_complete(check_updates(updates=updates, chat_id=d['tg_channel_id']))
+    except Exception as e:
+        print(e)
+    finally:
+        loop.close()
 
 
 async def check_updates(updates, chat_id):
