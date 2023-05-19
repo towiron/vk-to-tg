@@ -10,6 +10,7 @@ from keyboards.keyboards import start_kb, cancel_kb, forward_kb
 from services.services import get_vk_id
 
 from database.database import collection_users
+from services.vk_services import start_checking_group
 
 router: Router = Router()
 
@@ -97,7 +98,9 @@ async def process_forwarding(callback: CallbackQuery):
         )
         await callback.message.edit_text(text='Репост запущен!')
         user_data = collection_users.find_one({"user_id": callback.from_user.id})
-        # await start_forwarding(user_data=user_data, chat_id=callback.from_user.id)
+        await start_checking_group(user_id=user_data['user_id'],
+                                   vk_group_id=user_data['vk_group_id'],
+                                   tg_channel_id=user_data['tg_channel_id'])
         await callback.message.answer(text=LEXICON_RU['my_relations'],
                                       reply_markup=start_kb(),
                                       parse_mode='HTML')

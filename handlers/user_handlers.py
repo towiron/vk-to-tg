@@ -8,6 +8,7 @@ from lexicon.lexicon_ru import LEXICON_RU
 from keyboards.keyboards import start_kb, forward_start_kb, forward_stop_kb
 from database.database import collection_users
 from services.services import get_group_name, get_telegram_channel_name
+from services.vk_services import start_checking_group, stop_checking_group
 from .create_link_handlers import process_fill_link_command
 
 router: Router = Router()
@@ -59,9 +60,9 @@ async def process_forwarding(callback: CallbackQuery, state: FSMContext):
 async def process_forwarding(callback: CallbackQuery):
     user_data = collection_users.find_one({"user_id": callback.from_user.id})
     if callback.data == 'forward_start':
-        start_thread(user_id=user_data['user_id'],
-                     vk_group_id=user_data['vk_group_id'],
-                     tg_channel_id=user_data['tg_channel_id'])
+        await start_checking_group(user_id=user_data['user_id'],
+                                   vk_group_id=user_data['vk_group_id'],
+                                   tg_channel_id=user_data['tg_channel_id'])
         collection_users.update_one(
             {"user_id": callback.from_user.id},
             {"$set": {'forwarding': True}}
@@ -75,7 +76,8 @@ async def process_forwarding(callback: CallbackQuery):
                 f'Состояние(Изменилось): 🟢Запущен')
             await callback.answer()
     elif callback.data == 'forward_stop':
-        # stop_thread(user_data['user_id'])
+        print(user_data['user_id'])
+        await stop_checking_group(user_id=user_data['user_id'])
         collection_users.update_one(
             {"user_id": callback.from_user.id},
             {"$set": {'forwarding': False}}
