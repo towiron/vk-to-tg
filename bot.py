@@ -2,13 +2,14 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.redis import RedisStorage, Redis
+from utils.mongo import MongoStorage
 
 from config_data.config import Config, load_config
 from handlers import other_handlers, user_handlers, create_link_handlers
 
 from services.vk_services import load_collection
 from database.database import collection_users
+
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
 
@@ -24,11 +25,10 @@ async def main():
     # Выводим в консоль информацию о начале запуска бота
     logger.info('Starting bot')
 
-    # Инициализируем Redis
-    redis: Redis = Redis(host='localhost')
-
-    # Инициализируем хранилище (создаем экземпляр класса RedisStorage)
-    storage: RedisStorage = RedisStorage(redis=redis)
+    storage = MongoStorage(uri="mongodb://localhost:27017/",
+                                 database='vktotg',
+                                 collection_states='sessions'
+                                 )
 
     # Загружаем конфиг в переменную config
     config: Config = load_config()

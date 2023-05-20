@@ -15,13 +15,13 @@ router: Router = Router()
 
 
 @router.message(CommandStart(), StateFilter(default_state))
-async def proccess_start_command(message: Message):
+async def process_start_command(message: Message):
     await message.answer(text=LEXICON_RU['/start'],
                          reply_markup=start_kb())
 
 
 @router.message(Command(commands=['help']), StateFilter(default_state))
-async def proccess_help_command(message: Message):
+async def process_help_command(message: Message):
     await message.answer(text=LEXICON_RU['/help'],
                          reply_markup=start_kb())
 

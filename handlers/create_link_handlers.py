@@ -38,6 +38,9 @@ async def process_cancel_command_state(message: Message, state: FSMContext):
 
 @router.message(Text(text=['Создать свзяь'], ignore_case=True), StateFilter(default_state))
 async def process_fill_link_command(message: Message, state: FSMContext):
+    user_data = {'user_id': message.from_user.id}
+    if not collection_users.find_one(user_data):
+        collection_users.insert_one(user_data)
     await message.answer(text=LEXICON_RU['create_vk'],
                          parse_mode='HTML',
                          reply_markup=cancel_kb())
@@ -48,6 +51,8 @@ async def process_fill_link_command(message: Message, state: FSMContext):
 async def process_fill_vk(message: Message, state: FSMContext):
     vk_group_id = await get_vk_id(message)
     if vk_group_id:
+        collection_users.update_one({'user_id': message.from_user.id},
+                                    {'$set': {'vk_group_id': vk_group_id}})
         await state.update_data(vk_group_id=vk_group_id)
         await message.answer(text=LEXICON_RU['create_tg'],
                              parse_mode='HTML',
@@ -67,18 +72,9 @@ async def process_fill_tg(message: Message, state: FSMContext):
         if user_data:
             collection_users.update_one(
                 {"user_id": message.from_user.id},
-                {"$set": {"vk_group_id": user_dict[message.from_user.id]["vk_group_id"],
-                          'tg_channel_id': tg_channel_id,
+                {"$set": {'tg_channel_id': tg_channel_id,
                           'forwarding': False}}
             )
-        else:
-            data = {
-                "user_id": message.from_user.id,
-                "vk_group_id": user_dict[message.from_user.id]["vk_group_id"],
-                "tg_channel_id": tg_channel_id,
-                'forwarding': False
-            }
-            collection_users.insert_one(data)
         await state.clear()
         await message.answer(text=LEXICON_RU['congratulations'],
                              parse_mode='HTML',
@@ -87,6 +83,28 @@ async def process_fill_tg(message: Message, state: FSMContext):
                              reply_markup=forward_kb())
     else:
         await message.answer(text=LEXICON_RU['error_tg_forward'])
+
+
+@router.callback_query(Text(text=['yes_forwarding', 'no_forwarding']))
+async def process_forwarding(callback: CallbackQuery):
+    if callback.data == 'yes_forwarding':
+        collection_users.update_one(
+            {"user_id": callback.from_user.id},
+            {"$set": {'forwarding': True}}
+        )
+        await callback.message.edit_text(text='Репост запущен!')
+        user_data = collection_users.find_one({"user_id": callback.from_user.id})
+        await start_checking_group(user_id=user_data['user_id'],
+                                   vk_group_id=user_data['vk_group_id'],
+                                   tg_channel_id=user_data['tg_channel_id'])
+        await callback.message.answer(text=LEXICON_RU['my_relations'],
+                                      reply_markup=start_kb(),
+                                      parse_mode='HTML')
+    else:
+        await callback.message.edit_text(text='Репост отключен!')
+        await callback.message.answer(text=LEXICON_RU['my_relations'],
+                                      reply_markup=start_kb(),
+                                      parse_mode='HTML')
 
 
 @router.callback_query(Text(text=['yes_forwarding', 'no_forwarding']))
