@@ -25,7 +25,7 @@ async def main():
     # Выводим в консоль информацию о начале запуска бота
     logger.info('Starting bot')
 
-    storage = MongoStorage(uri="mongodb://localhost:27017/",
+    storage = MongoStorage(uri="mongodb://mongo:27017/",
                                  database='vktotg',
                                  collection_states='sessions'
                                  )
