@@ -1,4 +1,4 @@
-FROM python:3.10
+FROM python:alpine
 COPY . /vktotg
 WORKDIR /vktotg
 RUN pip3 install -r requirements.txt
